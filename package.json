@@ -1,0 +1,16 @@
+{
+  "name": "EventSystem",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./src/EventSystem.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rollup -c",
+    "dev": "rollup -cw"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "rollup": "^2.33.1"
+  }
+}
