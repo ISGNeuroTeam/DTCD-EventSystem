@@ -1,12 +1,12 @@
 import {CustomEvent} from './utils/CustomEvent';
 import {CustomAction} from './utils/CustomAction';
-import {SystemPlugin, GUIDSystemAdapter, LogSystemAdapter} from './../../../DTCD-SDK/index';
+import {SystemPlugin, LogSystemAdapter} from './../../../DTCD-SDK/index';
 
-export class Plugin extends SystemPlugin {
+export class EventSystem extends SystemPlugin {
 	static getRegistrationMeta() {
 		return {
 			type: 'core',
-			title: 'Система Событий',
+			title: 'Система cобытий',
 			name: 'EventSystem',
 		};
 	}
@@ -15,20 +15,23 @@ export class Plugin extends SystemPlugin {
 		super();
 		// systemGUID needed for getting callback (function) of instances by guid
 		this.guid = guid;
-		this.systemGUID = new GUIDSystemAdapter();
 		this.logSystem = new LogSystemAdapter(this.guid, 'EventSystem');
 		this.actions = [];
 		this.events = [];
 	}
 
 	registerEvent(customEvent) {
-		this.events.push(customEvent);
-		return true;
+		if (customEvent instanceof CustomEvent) {
+			this.events.push(customEvent);
+			return true;
+		} else return false;
 	}
 
 	registerAction(action) {
-		this.actions.push(action);
-		return true;
+		if (action instanceof CustomAction) {
+			this.actions.push(action);
+			return true;
+		} else return false;
 	}
 
 	// Events methods
@@ -38,8 +41,11 @@ export class Plugin extends SystemPlugin {
 	}
 
 	publishEvent(customEvent) {
-		this.logSystem.log(`Publish event ${customEvent.id}`);
-		PubSub.publish(customEvent, customEvent.id);
+		if (customEvent instanceof CustomEvent) {
+			this.logSystem.log(`Publish event ${customEvent.id}`);
+			PubSub.publish(customEvent, customEvent.id);
+			return true;
+		} else return false;
 	}
 
 	createEvent(guid, eventName, args = null) {
@@ -49,8 +55,8 @@ export class Plugin extends SystemPlugin {
 	// Actions methods
 
 	createAction(actionName, guid, args = null) {
-		const instance = this.systemGUID.guids[guid];
-		// Warning!: nextline is very important. It's getting method of DataCADPlugin by actionName
+		const instance = this.getInstance(guid);
+		// Warning!: nextline is very important. It's bind "this" of instance to callback
 		const callback = instance[actionName].bind(instance);
 		return new CustomAction(actionName, guid, callback, args);
 	}
