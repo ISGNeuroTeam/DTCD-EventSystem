@@ -1,1 +1,348 @@
-!function(r){"use strict";var n={};r.PubSub=n;var t=r.define;!function(c){"use strict";var a={},e=-1,u="*";function i(r){var n;for(n in r){if(r.hasOwnProperty(n)){return true}}return false}function o(n){return function r(){throw n}}function f(r,n,t){try{r(n,t)}catch(r){setTimeout(o(r),0)}}function s(r,n,t){r(n,t)}function p(r,n,t,e){var i=a[n],o=e?s:f,u;if(!a.hasOwnProperty(n)){return}for(u in i){if(i.hasOwnProperty(u)){o(i[u],r,t)}}}function l(e,i,o){return function r(){var n=String(e),t=n.lastIndexOf(".");p(e,e,i,o);while(t!==-1){n=n.substr(0,t);t=n.lastIndexOf(".");p(e,n,i,o)}p(e,u,i,o)}}function b(r){var n=String(r),t=Boolean(a.hasOwnProperty(n)&&i(a[n]));return t}function y(r){var n=String(r),t=b(n)||b(u),e=n.lastIndexOf(".");while(!t&&e!==-1){n=n.substr(0,e);e=n.lastIndexOf(".");t=b(n)}return t}function t(r,n,t,e){r=typeof r==="symbol"?r.toString():r;var i=l(r,n,e),o=y(r);if(!o){return false}if(t===true){i()}else{setTimeout(i,0)}return true}c.publish=function(r,n){return t(r,n,false,c.immediateExceptions)},c.publishSync=function(r,n){return t(r,n,true,c.immediateExceptions)},c.subscribe=function(r,n){if(typeof n!=="function"){return false}r=typeof r==="symbol"?r.toString():r;if(!a.hasOwnProperty(r)){a[r]={}}var t="uid_"+String(++e);a[r][t]=n;return t},c.subscribeAll=function(r){return c.subscribe(u,r)},c.subscribeOnce=function(r,n){var t=c.subscribe(r,function(){c.unsubscribe(t);n.apply(this,arguments)});return c},c.clearAllSubscriptions=function r(){a={}},c.clearSubscriptions=function r(n){var t;for(t in a){if(a.hasOwnProperty(t)&&t.indexOf(n)===0){delete a[t]}}},c.countSubscriptions=function r(n){var t;var e=0;for(t in a){if(a.hasOwnProperty(t)&&t.indexOf(n)===0){e++}}return e},c.getSubscriptions=function r(n){var t;var e=[];for(t in a){if(a.hasOwnProperty(t)&&t.indexOf(n)===0){e.push(t)}}return e},c.unsubscribe=function(r){var n=function(r){var n;for(n in a){if(a.hasOwnProperty(n)&&n.indexOf(r)===0){return true}}return false},t=typeof r==="string"&&(a.hasOwnProperty(r)||n(r)),e=!t&&typeof r==="string",i=typeof r==="function",o=false,u,f,s;if(t){c.clearSubscriptions(r);return}for(u in a){if(a.hasOwnProperty(u)){f=a[u];if(e&&f[r]){delete f[r];o=r;break}if(i){for(s in f){if(f.hasOwnProperty(s)&&f[s]===r){delete f[s];o=true}}}}}return o}}(n),"function"==typeof t&&t.amd?t(function(){return n}):"object"==typeof exports&&(void 0!==module&&module.exports&&(exports=module.exports=n),exports.PubSub=n,module.exports=exports=n)}("object"==typeof window&&window||this);
+/**
+ * Copyright (c) 2010,2011,2012,2013,2014 Morgan Roderick http://roderick.dk
+ * License: MIT - http://mrgnrdrck.mit-license.org
+ *
+ * https://github.com/mroderick/PubSubJS
+ */
+
+(function (root, factory){
+    'use strict';
+
+    var PubSub = {};
+    root.PubSub = PubSub;
+    factory(PubSub);
+    // CommonJS and Node.js module support
+    if (typeof exports === 'object'){
+        if (module !== undefined && module.exports) {
+            exports = module.exports = PubSub; // Node.js specific `module.exports`
+        }
+        exports.PubSub = PubSub; // CommonJS module 1.1.1 spec
+        module.exports = exports = PubSub; // CommonJS
+    }
+    // AMD support
+    /* eslint-disable no-undef */
+    else if (typeof define === 'function' && define.amd){
+        define(function() { return PubSub; });
+        /* eslint-enable no-undef */
+    }
+
+}(( typeof window === 'object' && window ) || this, function (PubSub){
+    'use strict';
+
+    var messages = {},
+        lastUid = -1,
+        ALL_SUBSCRIBING_MSG = '*';
+
+    function hasKeys(obj){
+        var key;
+
+        for (key in obj){
+            if ( Object.prototype.hasOwnProperty.call(obj, key) ){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns a function that throws the passed exception, for use as argument for setTimeout
+     * @alias throwException
+     * @function
+     * @param { Object } ex An Error object
+     */
+    function throwException( ex ){
+        return function reThrowException(){
+            throw ex;
+        };
+    }
+
+    function callSubscriberWithDelayedExceptions( subscriber, message, data ){
+        try {
+            subscriber( message, data );
+        } catch( ex ){
+            setTimeout( throwException( ex ), 0);
+        }
+    }
+
+    function callSubscriberWithImmediateExceptions( subscriber, message, data ){
+        subscriber( message, data );
+    }
+
+    function deliverMessage( originalMessage, matchedMessage, data, immediateExceptions ){
+        var subscribers = messages[matchedMessage],
+            callSubscriber = immediateExceptions ? callSubscriberWithImmediateExceptions : callSubscriberWithDelayedExceptions,
+            s;
+
+        if ( !Object.prototype.hasOwnProperty.call( messages, matchedMessage ) ) {
+            return;
+        }
+
+        for (s in subscribers){
+            if ( Object.prototype.hasOwnProperty.call(subscribers, s)){
+                callSubscriber( subscribers[s], originalMessage, data );
+            }
+        }
+    }
+
+    function createDeliveryFunction( message, data, immediateExceptions ){
+        return function deliverNamespaced(){
+            var topic = String( message ),
+                position = topic.lastIndexOf( '.' );
+
+            // deliver the message as it is now
+            deliverMessage(message, message, data, immediateExceptions);
+
+            // trim the hierarchy and deliver message to each level
+            while( position !== -1 ){
+                topic = topic.substr( 0, position );
+                position = topic.lastIndexOf('.');
+                deliverMessage( message, topic, data, immediateExceptions );
+            }
+
+            deliverMessage(message, ALL_SUBSCRIBING_MSG, data, immediateExceptions);
+        };
+    }
+
+    function hasDirectSubscribersFor( message ) {
+        var topic = String( message ),
+            found = Boolean(Object.prototype.hasOwnProperty.call( messages, topic ) && hasKeys(messages[topic]));
+
+        return found;
+    }
+
+    function messageHasSubscribers( message ){
+        var topic = String( message ),
+            found = hasDirectSubscribersFor(topic) || hasDirectSubscribersFor(ALL_SUBSCRIBING_MSG),
+            position = topic.lastIndexOf( '.' );
+
+        while ( !found && position !== -1 ){
+            topic = topic.substr( 0, position );
+            position = topic.lastIndexOf( '.' );
+            found = hasDirectSubscribersFor(topic);
+        }
+
+        return found;
+    }
+
+    function publish( message, data, sync, immediateExceptions ){
+        message = (typeof message === 'symbol') ? message.toString() : message;
+
+        var deliver = createDeliveryFunction( message, data, immediateExceptions ),
+            hasSubscribers = messageHasSubscribers( message );
+
+        if ( !hasSubscribers ){
+            return false;
+        }
+
+        if ( sync === true ){
+            deliver();
+        } else {
+            setTimeout( deliver, 0 );
+        }
+        return true;
+    }
+
+    /**
+     * Publishes the message, passing the data to it's subscribers
+     * @function
+     * @alias publish
+     * @param { String } message The message to publish
+     * @param {} data The data to pass to subscribers
+     * @return { Boolean }
+     */
+    PubSub.publish = function( message, data ){
+        return publish( message, data, false, PubSub.immediateExceptions );
+    };
+
+    /**
+     * Publishes the message synchronously, passing the data to it's subscribers
+     * @function
+     * @alias publishSync
+     * @param { String } message The message to publish
+     * @param {} data The data to pass to subscribers
+     * @return { Boolean }
+     */
+    PubSub.publishSync = function( message, data ){
+        return publish( message, data, true, PubSub.immediateExceptions );
+    };
+
+    /**
+     * Subscribes the passed function to the passed message. Every returned token is unique and should be stored if you need to unsubscribe
+     * @function
+     * @alias subscribe
+     * @param { String } message The message to subscribe to
+     * @param { Function } func The function to call when a new message is published
+     * @return { String }
+     */
+    PubSub.subscribe = function( message, func ){
+        if ( typeof func !== 'function'){
+            return false;
+        }
+
+        message = (typeof message === 'symbol') ? message.toString() : message;
+
+        // message is not registered yet
+        if ( !Object.prototype.hasOwnProperty.call( messages, message ) ){
+            messages[message] = {};
+        }
+
+        // forcing token as String, to allow for future expansions without breaking usage
+        // and allow for easy use as key names for the 'messages' object
+        var token = 'uid_' + String(++lastUid);
+        messages[message][token] = func;
+
+        // return token for unsubscribing
+        return token;
+    };
+
+    PubSub.subscribeAll = function( func ){
+        return PubSub.subscribe(ALL_SUBSCRIBING_MSG, func);
+    };
+
+    /**
+     * Subscribes the passed function to the passed message once
+     * @function
+     * @alias subscribeOnce
+     * @param { String } message The message to subscribe to
+     * @param { Function } func The function to call when a new message is published
+     * @return { PubSub }
+     */
+    PubSub.subscribeOnce = function( message, func ){
+        var token = PubSub.subscribe( message, function(){
+            // before func apply, unsubscribe message
+            PubSub.unsubscribe( token );
+            func.apply( this, arguments );
+        });
+        return PubSub;
+    };
+
+    /**
+     * Clears all subscriptions
+     * @function
+     * @public
+     * @alias clearAllSubscriptions
+     */
+    PubSub.clearAllSubscriptions = function clearAllSubscriptions(){
+        messages = {};
+    };
+
+    /**
+     * Clear subscriptions by the topic
+     * @function
+     * @public
+     * @alias clearAllSubscriptions
+     * @return { int }
+     */
+    PubSub.clearSubscriptions = function clearSubscriptions(topic){
+        var m;
+        for (m in messages){
+            if (Object.prototype.hasOwnProperty.call(messages, m) && m.indexOf(topic) === 0){
+                delete messages[m];
+            }
+        }
+    };
+
+    /**
+       Count subscriptions by the topic
+     * @function
+     * @public
+     * @alias countSubscriptions
+     * @return { Array }
+    */
+    PubSub.countSubscriptions = function countSubscriptions(topic){
+        var m;
+        var count = 0;
+        for (m in messages){
+            if (Object.prototype.hasOwnProperty.call(messages, m) && m.indexOf(topic) === 0){
+                count++;
+            }
+        }
+        return count;
+    };
+
+
+    /**
+       Gets subscriptions by the topic
+     * @function
+     * @public
+     * @alias getSubscriptions
+    */
+    PubSub.getSubscriptions = function getSubscriptions(topic){
+        var m;
+        var list = [];
+        for (m in messages){
+            if (Object.prototype.hasOwnProperty.call(messages, m) && m.indexOf(topic) === 0){
+                list.push(m);
+            }
+        }
+        return list;
+    };
+
+    /**
+     * Removes subscriptions
+     *
+     * - When passed a token, removes a specific subscription.
+     *
+	 * - When passed a function, removes all subscriptions for that function
+     *
+	 * - When passed a topic, removes all subscriptions for that topic (hierarchy)
+     * @function
+     * @public
+     * @alias subscribeOnce
+     * @param { String | Function } value A token, function or topic to unsubscribe from
+     * @example // Unsubscribing with a token
+     * var token = PubSub.subscribe('mytopic', myFunc);
+     * PubSub.unsubscribe(token);
+     * @example // Unsubscribing with a function
+     * PubSub.unsubscribe(myFunc);
+     * @example // Unsubscribing from a topic
+     * PubSub.unsubscribe('mytopic');
+     */
+    PubSub.unsubscribe = function(value){
+        var descendantTopicExists = function(topic) {
+                var m;
+                for ( m in messages ){
+                    if ( Object.prototype.hasOwnProperty.call(messages, m) && m.indexOf(topic) === 0 ){
+                        // a descendant of the topic exists:
+                        return true;
+                    }
+                }
+
+                return false;
+            },
+            isTopic    = typeof value === 'string' && ( Object.prototype.hasOwnProperty.call(messages, value) || descendantTopicExists(value) ),
+            isToken    = !isTopic && typeof value === 'string',
+            isFunction = typeof value === 'function',
+            result = false,
+            m, message, t;
+
+        if (isTopic){
+            PubSub.clearSubscriptions(value);
+            return;
+        }
+
+        for ( m in messages ){
+            if ( Object.prototype.hasOwnProperty.call( messages, m ) ){
+                message = messages[m];
+
+                if ( isToken && message[value] ){
+                    delete message[value];
+                    result = value;
+                    // tokens are unique, so we can just stop here
+                    break;
+                }
+
+                if (isFunction) {
+                    for ( t in message ){
+                        if (Object.prototype.hasOwnProperty.call(message, t) && message[t] === value){
+                            delete message[t];
+                            result = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
+    };
+}));
