@@ -1,26 +1,28 @@
-# EventSystem
+# DTCD-EventSystem
 
-Core system-plugin (part of DTCD-SDK) in [DTCD](https://github.com/ISGNeuroTeam/DTCD) application.
+System core plugin of the [DTCD](https://github.com/ISGNeuroTeam/DTCD) application for actions and events.
 
 ## Getting Started
 
-In order to use this plugin you need to download it, build and move build-file to _plugins_ folder on DTCD server.
+In order to use this plugin you need to download it, build and move build-file to __plugins__ folder on DTCD server.
 
 ### Prerequisites
 
-```
-- Node.js LTS version (upper 12.0)
-```
+- [Node.js](https://nodejs.org/en/) LTS version 14.x.x
+- [make](https://en.wikipedia.org/wiki/Make_(software)) utility
+- [DTCD](https://github.com/ISGNeuroTeam/DTCD) application
 
-### Installing
+### Building
 
-- Installing dependencies for plugin and build it.
-  > 1. `cd ./EventSystem`
-  > 2. `npm i`
-  > 3. `npm run build`
+Install plugin dependencies:
+- `make sdk`
+- `make dependencies`
 
-Also you can use makefile for this
+Create build directory:
+- `cd ./DTCD-EventSystem`
+- `npm run build`
 
+Also you can use Makefile for complete all steps:
 ```
 make build
 ```
@@ -31,30 +33,52 @@ make build
 make test
 ```
 
-## Deployment
+## Create build package
 
 ```
-In development
+make pack
+```
+
+## Clear dependencies
+
+```
+make clear
+```
+
+## Deployment
+
+Create build package, then move archive to __plugins__ folder on DTCD server and unpack it with the following commands:
+```
+tar -zxf DTCD-EventSystem-*.tar.gz ./DTCD-EventSystem
+mv ./DTCD-EventSystem/EventSystem.js ./
+rm -rf DTCD-EventSystem
+```
+
+After unpacking the build package, remove or delete it from __plugins__ folder, for example:
+```
+rm DTCD-EventSystem-*.tar.gz
 ```
 
 ## Built With
 
-- [rollup](https://rollupjs.org/guide/en/) - Builder
+- [Rollup.js](https://rollupjs.org/guide/en/) - JavaScript module bundler
 - [PubSub](https://github.com/mroderick/PubSubJS) - publish/subscribe library
+- [DTCD-SDK](https://github.com/ISGNeuroTeam/DTCD-SDK) - SDK for plugin development
 
 ## Contributing
 
+
 ## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags).
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/ISGNeuroTeam/DTCD-EventSystem/tags).
+
+Also you can see the [CHANGELOG](CHANGELOG.md) file.
 
 ## Authors
 
-Konstantin Rozov (konstantin@isgneuro.com)
-Roman Kuramshin (rkuramshin@isgneuro.com)
+- Konstantin Rozov (konstantin@isgneuro.com)
+- Roman Kuramshin (rkuramshin@isgneuro.com)
 
 ## License
 
-This project is licensed under the OT.PLATFORM license agreement - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
+This project is licensed under the OT.PLATFORM license agreement - see the [LICENSE](LICENSE.md) file for details.
