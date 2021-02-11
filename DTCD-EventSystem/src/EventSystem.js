@@ -1,6 +1,6 @@
 import { CustomEvent } from './utils/CustomEvent';
 import { CustomAction } from './utils/CustomAction';
-import { SystemPlugin, LogSystemAdapter } from './../../../DTCD-SDK/index';
+import { SystemPlugin, LogSystemAdapter } from './../../DTCD-SDK/index';
 
 export class EventSystem extends SystemPlugin {
   static getRegistrationMeta() {
