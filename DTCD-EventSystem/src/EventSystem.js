@@ -42,7 +42,7 @@ export class EventSystem extends SystemPlugin {
 
   publishEvent(customEvent) {
     if (customEvent instanceof CustomEvent) {
-      this.logSystem.log(`Publish event ${customEvent.id}`);
+      this.logSystem.info(`Publish event ${customEvent.id}`);
       PubSub.publish(customEvent, customEvent.id);
       return true;
     } else return false;
