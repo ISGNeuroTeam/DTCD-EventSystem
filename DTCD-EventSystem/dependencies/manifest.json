@@ -1,0 +1,7 @@
+[{
+    "name": "PubSub",
+    "fileName": "pubsub.js",
+    "version": "1.9.3",
+    "type": "iife",
+    "source":"https://cdnjs.cloudflare.com/ajax/libs/pubsub-js/1.9.3/pubsub.min.js"
+}]
