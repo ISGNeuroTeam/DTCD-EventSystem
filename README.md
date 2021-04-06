@@ -4,25 +4,28 @@ System core plugin of the [DTCD](https://github.com/ISGNeuroTeam/DTCD) applicati
 
 ## Getting Started
 
-In order to use this plugin you need to download it, build and move build-file to __plugins__ folder on DTCD server.
+In order to use this plugin you need to download it, build and move build-file to **plugins** folder on DTCD server.
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/en/) LTS version 14.x.x
-- [make](https://en.wikipedia.org/wiki/Make_(software)) utility
+- [make](<https://en.wikipedia.org/wiki/Make_(software)>) utility
 - [DTCD](https://github.com/ISGNeuroTeam/DTCD) application
 
 ### Building
 
 Install plugin dependencies:
+
 - `make sdk`
 - `make dependencies`
 
 Create build directory:
+
 - `cd ./DTCD-EventSystem`
 - `npm run build`
 
 Also you can use Makefile for complete all steps:
+
 ```
 make build
 ```
@@ -47,14 +50,14 @@ make clear
 
 ## Deployment
 
-Create build package, then move archive to __plugins__ folder on DTCD server and unpack it with the following commands:
+Create build package, then move archive to **plugins** folder on DTCD server and unpack it with the following commands:
+
 ```
-tar -zxf DTCD-EventSystem-*.tar.gz ./DTCD-EventSystem
-mv ./DTCD-EventSystem/EventSystem.js ./
-rm -rf DTCD-EventSystem
+tar -zxf DTCD-EventSystem-*.tar.gz
 ```
 
-After unpacking the build package, remove or delete it from __plugins__ folder, for example:
+After unpacking the build package, remove or delete it from **plugins** folder, for example:
+
 ```
 rm DTCD-EventSystem-*.tar.gz
 ```
@@ -66,7 +69,6 @@ rm DTCD-EventSystem-*.tar.gz
 - [DTCD-SDK](https://github.com/ISGNeuroTeam/DTCD-SDK) - SDK for plugin development
 
 ## Contributing
-
 
 ## Versioning
 
