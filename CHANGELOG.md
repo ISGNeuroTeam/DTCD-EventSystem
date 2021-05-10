@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - changed version of SDK
+- all logs now recorded with 'debug' level
 
 ## Fixed
 

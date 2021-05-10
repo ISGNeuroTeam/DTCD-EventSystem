@@ -27,7 +27,7 @@ export class EventSystem extends SystemPlugin {
     this.logSystem.debug(`Trying to register event '${customEvent.id}`);
     if (customEvent instanceof CustomEvent) {
       this.events.push(customEvent);
-      this.logSystem.info(`Registered event '${customEvent.id}'`);
+      this.logSystem.debug(`Registered event '${customEvent.id}'`);
       return true;
     } else {
       this.logSystem.debug(`Given event isn't istance of CustomEvent class`);
@@ -38,7 +38,7 @@ export class EventSystem extends SystemPlugin {
   registerAction(action) {
     if (action instanceof CustomAction) {
       this.actions.push(action);
-      this.logSystem.info(`Registered action '${action.id}'`);
+      this.logSystem.debug(`Registered action '${action.id}'`);
       return true;
     } else return false;
   }
@@ -46,7 +46,7 @@ export class EventSystem extends SystemPlugin {
   // Events methods
   createAndPublish(guid, eventName, args) {
     const customEvent = this.createEvent(guid, eventName, args);
-    this.logSystem.info(`Created event '${customEvent.id}'`);
+    this.logSystem.debug(`Created event '${customEvent.id}'`);
     this.publishEvent(customEvent);
   }
 
@@ -54,15 +54,13 @@ export class EventSystem extends SystemPlugin {
     this.logSystem.debug(`Trying to publish event '${customEvent.id}`);
     if (customEvent instanceof CustomEvent) {
       PubSub.publish(customEvent, customEvent.id);
-      this.logSystem.info(`Published event '${customEvent.id}'`);
+      this.logSystem.debug(`Published event '${customEvent.id}'`);
       return true;
     } else return false;
   }
 
   createEvent(guid, eventName, args = null) {
-    this.logSystem.debug(
-      `Creating event '${eventName}' to instance id '${guid}' with args:${args} `
-    );
+    this.logSystem.debug(`Creating event '${eventName}' to instance id '${guid}' with args:${args} `);
     return new CustomEvent(guid, eventName, args);
   }
 
@@ -75,7 +73,7 @@ export class EventSystem extends SystemPlugin {
     this.logSystem.debug(`Binding callback '${actionName}' to plugin instance`);
     const callback = instance[actionName].bind(instance);
     const action = new CustomAction(actionName, guid, callback, args);
-    this.logSystem.info(`Created action '${action.id}'`);
+    this.logSystem.debug(`Created action '${action.id}'`);
     return action;
   }
 
@@ -87,7 +85,7 @@ export class EventSystem extends SystemPlugin {
     );
     const customAction = new CustomAction(actionName, guid, callback, args);
     this.actions.push(customAction);
-    this.logSystem.info(`Created action '${customAction.id}' by callback '${callback.name}'`);
+    this.logSystem.debug(`Created action '${customAction.id}' by callback '${callback.name}'`);
     return customAction;
   }
 
@@ -99,7 +97,7 @@ export class EventSystem extends SystemPlugin {
     if (events?.length != 0 && action) {
       events.forEach(evt => {
         this.subscribe(evt, action);
-        this.logSystem.info(`Subscribed event '${evt.id}' to action '${action.id}'`);
+        this.logSystem.debug(`Subscribed event '${evt.id}' to action '${action.id}'`);
       });
       return true;
     } else {
@@ -114,7 +112,7 @@ export class EventSystem extends SystemPlugin {
     for (let evt of events) {
       for (let action of actions) {
         this.subscribe(evt.id, action.id);
-        this.logSystem.info(`Subscribed event '${evt.id}' to action '${action.id}'`);
+        this.logSystem.debug(`Subscribed event '${evt.id}' to action '${action.id}'`);
       }
     }
     return true;
@@ -125,7 +123,7 @@ export class EventSystem extends SystemPlugin {
     const customAction = this.findActionById(actionID);
     if (customAction) {
       PubSub.subscribe(eventID, customAction.callback);
-      this.logSystem.info(`Subscribed event '${eventID}' to action '${customAction.id}'`);
+      this.logSystem.debug(`Subscribed event '${eventID}' to action '${customAction.id}'`);
       return true;
     } else {
       return false;
@@ -137,7 +135,7 @@ export class EventSystem extends SystemPlugin {
     const events = this.findEventsByName(eventName);
     for (let evt of events) {
       PubSub.subscribe(evt, callback);
-      this.logSystem.info(`Subscribed event '${evt.id}' to callback:${callback.name}`);
+      this.logSystem.debug(`Subscribed event '${evt.id}' to callback:${callback.name}`);
     }
   }
 
