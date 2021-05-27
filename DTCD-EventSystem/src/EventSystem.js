@@ -60,7 +60,9 @@ export class EventSystem extends SystemPlugin {
   }
 
   createEvent(guid, eventName, args = null) {
-    this.logSystem.debug(`Creating event '${eventName}' to instance id '${guid}' with args:${args} `);
+    this.logSystem.debug(
+      `Creating event '${eventName}' to instance id '${guid}' with args:${args} `
+    );
     return new CustomEvent(guid, eventName, args);
   }
 
@@ -147,7 +149,7 @@ export class EventSystem extends SystemPlugin {
       this.logSystem.debug(`Successfully found actions with id: '${actionID}'`);
       return action;
     } else {
-      this.logSystem.debug(`No action found with the given id: '${actionIDs}'`);
+      this.logSystem.debug(`No action found with the given id: '${actionID}'`);
       return;
     }
   }
@@ -172,7 +174,7 @@ export class EventSystem extends SystemPlugin {
       return events;
     } else {
       this.logSystem.debug(`No events found with the given name: '${eventName}'`);
-      return;
+      return [];
     }
   }
 
@@ -184,7 +186,7 @@ export class EventSystem extends SystemPlugin {
       return actions;
     } else {
       this.logSystem.debug(`No actions found with the given name: '${actionName}'`);
-      return;
+      return [];
     }
   }
 
