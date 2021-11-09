@@ -22,7 +22,6 @@ export class EventSystem extends SystemPlugin {
 
   constructor(guid) {
     super();
-    // systemGUID needed for getting callback (function) of instances by guid
     this.#guid = guid;
     this.#logSystem = new LogSystemAdapter(this.#guid, 'EventSystem');
     this.#actions = [];
@@ -39,7 +38,11 @@ export class EventSystem extends SystemPlugin {
 
   #createAction(guid, actionName, cb) {
     this.#logSystem.debug(`Creating action:'${actionName}', guid:'${guid}'`);
-    return new CustomAction(actionName, guid, cb);
+    // WARNING: pubsub-js pass first argument in callback is eventID (not needed)
+    const cbArgsWrap = (_, args) => {
+      cb(...args);
+    };
+    return new CustomAction(guid, actionName, cbArgsWrap);
   }
 
   #subscribe(customEvent, customAction) {
@@ -56,13 +59,15 @@ export class EventSystem extends SystemPlugin {
   // ---- FINDING ACTION/EVENT METHODS ----
   // ---- actions ----
   #findAction(guid, actionName) {
-    this.#logSystem.debug(`Finding action with the given actionID: '${actionID}'`);
+    this.#logSystem.debug(`Finding action with guid '${guid}' and name '${actionName}'`);
     const action = this.#actions.find(action => action.name == actionName && action.guid === guid);
     if (action) {
-      this.#logSystem.debug(`Successfully found actions with id: '${actionID}'`);
+      this.#logSystem.debug(
+        `Successfully found actions with guid '${guid}' and name '${actionName}'`
+      );
       return action;
     } else {
-      this.#logSystem.debug(`No action found with the given id: '${actionID}'`);
+      this.#logSystem.debug(`Action not found with guid '${guid}' and name '${actionName}'`);
       return -1;
     }
   }
@@ -75,9 +80,8 @@ export class EventSystem extends SystemPlugin {
 
   // ---- events ----
   #findEvent(guid, eventName) {
-    this.#logSystem.debug(`Finding event with the given eventID: '${eventID}'`);
+    this.#logSystem.debug(`Finding event with guid '${guid}' and name '${eventName}' `);
     const event = this.#events.find(evt => evt.guid == guid && evt.name === eventName);
-    this.#logSystem.debug(`Successfully found event with id: '${eventID}'`);
     return event ? event : -1;
   }
 
@@ -102,9 +106,14 @@ export class EventSystem extends SystemPlugin {
   // ---- REGISTER METHODS ----
   registerPluginInstance(guid, object, eventList) {
     this.#logSystem.debug(`Register object in eventSystem.\nguid:${guid}\n eventList:${eventList}`);
-    const methodList = Object.keys(object).filter(prop => typeof object[prop] === 'function');
+
+    const methodNotActionList = ['init', 'constructor'];
+    const methodList = Object.getOwnPropertyNames(Object.getPrototypeOf(object)).filter(
+      propName => typeof object[propName] === 'function'
+    );
     for (let methodName of methodList) {
-      this.registerAction(guid, methodName, object[methodName].bind(object));
+      if (!methodNotActionList.includes(methodName))
+        this.registerAction(guid, methodName, object[methodName].bind(object));
     }
     if (typeof eventList !== 'undefined')
       eventList.forEach(eventName => this.registerEvent(guid, eventName));
@@ -128,11 +137,10 @@ export class EventSystem extends SystemPlugin {
 
   // ---- Pub/Sub METHODS ----
   // ---- PUB ----
-  publishEvent(guid, eventName, args) {
-    this.#logSystem.debug(`Trying to publish event '${customEvent.id}`);
-    const customEvent = this.createEvent(guid, eventName);
-    customEvent.args = args;
-    PubSub.publish(customEvent.id, customEvent);
+  publishEvent(guid, eventName, ...args) {
+    this.#logSystem.debug(`Trying to publish event with guid '${guid}' and name '${eventName}' `);
+    const customEventID = CustomEvent.generateID(guid, eventName);
+    PubSub.publish(customEventID, args);
     return true;
   }
 
