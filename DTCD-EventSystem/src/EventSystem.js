@@ -49,11 +49,11 @@ export class EventSystem extends SystemPlugin {
     this.#logSystem.debug(`Subscribing event '${customEvent.id}' to action '${customAction.id}'`);
 
     // ---- MAIN SUBSCRIBE ----
-    PubSub.subscribe(customEvent, customAction.callback);
-    this.#subscriptions.push({ event: customEvent, action: customAction });
+    const token = PubSub.subscribe(customEvent.id, customAction.callback);
+    this.#subscriptions.push({ event: customEvent, action: customAction, token });
 
     this.#logSystem.debug(`Subscribed event '${customEvent.id}' to action '${customAction.id}'`);
-    return true;
+    return token;
   }
 
   // ---- FINDING ACTION/EVENT METHODS ----
@@ -93,9 +93,18 @@ export class EventSystem extends SystemPlugin {
 
   setPluginConfig(conf) {
     const { subscriptions, actions, events } = conf;
-    this.#subscriptions = subscriptions;
-    this.#actions = actions;
-    this.#events = events;
+    // TODO: !!!GUID-MAP HERE!!!
+
+    // this.#actions = actions;
+    // this.#events = events;
+    this.#subscriptions = [];
+    for (let subscription of subscriptions) {
+      const {
+        event: { guid: evtGUID, name: evtName },
+        action: { guid: actGUID, name: actName },
+      } = subscription;
+      subscription.token = this.subscribe(evtGUID, evtName, actGUID, actName);
+    }
     return true;
   }
 
