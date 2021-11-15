@@ -2,19 +2,21 @@ const watch = Boolean(process.env.ROLLUP_WATCH);
 
 const pluginName = 'EventSystem';
 
-const output = watch ? `./../../DTCD/server/plugins/${pluginName}.js` : `./build/${pluginName}.js`;
+const fileDest = watch
+  ? `./../../DTCD/server/plugins/DTCD-${pluginName}/${pluginName}.js`
+  : `./build/${pluginName}.js`;
 
 const plugins = [];
 
 export default {
-	input: './src/EventSystem.js',
-	output: {
-		file: output,
-		format: 'esm',
-		sourcemap: false,
-	},
-	watch: {
-		include: ['./*/**'],
-	},
-	plugins,
+  input: './src/EventSystem.js',
+  output: {
+    file: fileDest,
+    format: 'esm',
+    sourcemap: false,
+  },
+  watch: {
+    include: ['./*/**'],
+  },
+  plugins,
 };

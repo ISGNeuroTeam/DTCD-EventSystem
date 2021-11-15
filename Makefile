@@ -21,7 +21,7 @@ SET_PACK_NAME = $(eval PACK_NAME=$(PROJECT_NAME)-$(VERSION)-$(BRANCH).tar.gz)
 
 DEV_STORAGE = https://storage.dev.isgneuro.com/repository/components
 DTCD_SDK = DTCD-SDK
-DTCD_SDK_URL = $(DEV_STORAGE)/$(DTCD_SDK)/$(DTCD_SDK)-0.1.1-develop-0006.tar.gz
+DTCD_SDK_URL = $(DEV_STORAGE)/$(DTCD_SDK)/$(DTCD_SDK)-0.1.1-develop-0108.tar.gz
 
 .SILENT:
 
@@ -61,8 +61,7 @@ clean:
 	rm -rf *.tar.gz
 	rm -rf ./$(DTCD_SDK)/
 	rm -rf ./$(PROJECT_NAME)/node_modules/
-	rm -rf ./$(PROJECT_NAME)/package-lock.json
-	rm -rf ./$(PROJECT_NAME)/dependencies/*.js
+	rm -rf ./$(PROJECT_NAME)/*-lock.*
 	echo Cleaning completed.
 	# required section
 
@@ -100,3 +99,4 @@ sdk:
 
 dev: build
 	cp -rf ./build/$(PROJECT_NAME) ./../DTCD/server/plugins
+	npm run dev --prefix ./$(PROJECT_NAME)
