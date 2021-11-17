@@ -91,7 +91,7 @@ export class EventSystem extends SystemPlugin {
   }
 
   setPluginConfig(conf) {
-    const { subscriptions, actions, events } = conf;
+    const { subscriptions = [], actions = [], events = [] } = conf;
     // TODO: !!!GUID-MAP HERE!!!
 
     // this.#actions = actions;
