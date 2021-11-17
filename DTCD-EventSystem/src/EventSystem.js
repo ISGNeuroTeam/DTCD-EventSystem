@@ -92,8 +92,8 @@ export class EventSystem extends SystemPlugin {
 
   setPluginConfig(conf = {}) {
     const { subscriptions = [], actions = [], events = [] } = conf;
-
-    this.#subscriptions = [];
+    this.#actions = actions;
+    this.#events = events;
     for (let subscription of subscriptions) {
       const {
         event: { guid: evtGUID, name: evtName },
