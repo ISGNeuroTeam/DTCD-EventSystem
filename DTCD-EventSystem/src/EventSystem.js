@@ -91,18 +91,22 @@ export class EventSystem extends SystemPlugin {
   }
 
   setPluginConfig(conf = {}) {
-    const { subscriptions = [], actions = [], events = [] } = conf;
+    const { subscriptions = [], actions = [], events = [], GUIDMap = {} } = conf;
     // TODO: !!!GUID-MAP HERE!!!
 
-    this.#actions = [];
-    this.#events = [];
+    this.#actions = actions;
+    this.#events = events;
 
     for (let subscription of subscriptions) {
       const {
         event: { guid: evtGUID, name: evtName },
         action: { guid: actGUID, name: actName },
       } = subscription;
-      subscription.token = this.subscribe(evtGUID, evtName, actGUID, actName);
+      if (GUIDMap[evtGUID] && GUIDMap[actGUID]) {
+        subscription.token = this.subscribe(GUIDMap[evtGUID], evtName, GUIDMap[actGUID], actName);
+      } else {
+        subscription.token = this.subscribe(evtGUID, evtName, actGUID, actName);
+      }
     }
     return true;
   }
