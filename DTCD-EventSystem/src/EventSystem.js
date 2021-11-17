@@ -90,22 +90,26 @@ export class EventSystem extends SystemPlugin {
     return events;
   }
 
+  resetSystem() {
+    this.#subscriptions = [];
+    this.#events = [];
+    this.#actions = [];
+  }
+
   setPluginConfig(conf = {}) {
-    const { subscriptions = [], actions = [], events = [] } = conf;
-    this.#actions = actions;
-    this.#events = events;
+    const { subscriptions = [] } = conf;
     for (let subscription of subscriptions) {
       const {
         event: { guid: evtGUID, name: evtName },
         action: { guid: actGUID, name: actName },
       } = subscription;
-      subscription.token = this.subscribe(evtGUID, evtName, actGUID, actName);
+      this.subscribe(evtGUID, evtName, actGUID, actName);
     }
     return true;
   }
 
   getPluginConfig() {
-    return { subscriptions: this.#subscriptions, actions: this.#actions, events: this.#events };
+    return { subscriptions: this.#subscriptions };
   }
 
   // ---- REGISTER METHODS ----
