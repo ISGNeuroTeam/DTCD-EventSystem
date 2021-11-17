@@ -51,7 +51,6 @@ export class EventSystem extends SystemPlugin {
     // ---- MAIN SUBSCRIBE ----
     const token = PubSub.subscribe(customEvent.id, customAction.callback);
     this.#subscriptions.push({ event: customEvent, action: customAction, token });
-
     this.#logSystem.debug(`Subscribed event '${customEvent.id}' to action '${customAction.id}'`);
     return token;
   }
@@ -61,15 +60,11 @@ export class EventSystem extends SystemPlugin {
   #findAction(guid, actionName) {
     this.#logSystem.debug(`Finding action with guid '${guid}' and name '${actionName}'`);
     const action = this.#actions.find(action => action.name == actionName && action.guid === guid);
-    if (action) {
-      this.#logSystem.debug(
-        `Successfully found actions with guid '${guid}' and name '${actionName}'`
-      );
-      return action;
-    } else {
-      this.#logSystem.debug(`Action not found with guid '${guid}' and name '${actionName}'`);
-      return -1;
+    if (action === -1) {
+      this.#logSystem.error(`Event (${guid}, ${actionName}) not found`);
+      throw new Error(`Event (${guid}, ${actionName}) not found`);
     }
+    return action;
   }
 
   #findActionsByName(actionName) {
@@ -82,7 +77,11 @@ export class EventSystem extends SystemPlugin {
   #findEvent(guid, eventName) {
     this.#logSystem.debug(`Finding event with guid '${guid}' and name '${eventName}' `);
     const event = this.#events.find(evt => evt.guid == guid && evt.name === eventName);
-    return event ? event : -1;
+    if (event === -1) {
+      this.#logSystem.error(`Event (${guid}, ${eventName}) not found`);
+      throw new Error(`Event (${guid}, ${eventName}) not found`);
+    }
+    return event;
   }
 
   #findEventsByName(eventName) {
@@ -97,7 +96,7 @@ export class EventSystem extends SystemPlugin {
 
     // this.#actions = actions;
     // this.#events = events;
-    this.#subscriptions = [];
+    // this.#subscriptions = [];
     for (let subscription of subscriptions) {
       const {
         event: { guid: evtGUID, name: evtName },
@@ -156,9 +155,9 @@ export class EventSystem extends SystemPlugin {
   // ---- SUB ----
   subscribe(eventGUID, eventName, actionGUID, actionName) {
     this.#logSystem.debug(`Subscribe: ${eventGUID}, ${eventName}, ${actionGUID}, ${actionName}`);
-    const evt = this.#findEvent(eventGUID, eventName);
+    const event = this.#findEvent(eventGUID, eventName);
     const action = this.#findAction(actionGUID, actionName);
-    return this.#subscribe(evt, action);
+    return this.#subscribe(event, action);
   }
 
   subscribeActionOnEventName(actionGUID, actionName, eventName) {
