@@ -73,7 +73,14 @@ export class EventSystem extends SystemPlugin {
   }
 
   setPluginConfig(conf = {}) {
-    const { subscriptions = [] } = conf;
+    const { subscriptions = [], actions = [] } = conf;
+
+    actions.forEach(action => {
+      let { guid, name, callback } = action;
+      callback = new Function('return ' + callback)();
+      this.registerAction(guid, name, callback);
+    });
+
     for (let subscription of subscriptions) {
       const {
         event: { guid: evtGUID, name: evtName },
@@ -86,7 +93,10 @@ export class EventSystem extends SystemPlugin {
   }
 
   getPluginConfig() {
-    return { subscriptions: this.#subscriptions };
+    const customActions = this.#actions
+      .filter(action => !action.guid)
+      .map(action => ({ ...action, callback: action.callback.toString() }));
+    return { subscriptions: this.#subscriptions, actions: customActions };
   }
 
   // ---- REGISTER METHODS ----
@@ -114,15 +124,17 @@ export class EventSystem extends SystemPlugin {
     return true;
   }
 
-  registerAction(guid, actionName, cb) {
-    const action = this.#createAction(guid, actionName, cb);
+  registerAction(guid, actionName, callback) {
+    const action = this.#createAction(guid, actionName, callback);
     this.#actions.push(action);
     this.#logSystem.debug(`Registered action '${action.id}'`);
     return true;
   }
 
-  // ---- Pub/Sub METHODS ----
-  // ---- PUB ----
+  registerCustomAction(actionName, callback) {
+    return this.registerAction(undefined, actionName, callback);
+  }
+
   publishEvent(guid, eventName, ...args) {
     this.#logSystem.debug(`Trying to publish event with guid '${guid}' and name '${eventName}' `);
     const customEventID = CustomEvent.generateID(guid, eventName);
@@ -145,11 +157,11 @@ export class EventSystem extends SystemPlugin {
     }
   }
 
-  // ---- SUB ----
   subscribe(eventGUID, eventName, actionGUID, actionName, ...args) {
     this.#logSystem.debug(
-      `Tryin to subscribe: ${eventGUID}, ${eventName}, to ${actionGUID}, ${actionName}`
+      `Trying to subscribe: ${eventGUID}, ${eventName}, to ${actionGUID}, ${actionName}`
     );
+
     let event = this.#findEvent(eventGUID, eventName, args);
     let action = this.#findAction(actionGUID, actionName);
 
@@ -164,11 +176,13 @@ export class EventSystem extends SystemPlugin {
       this.#logSystem.error(`Action (${actionGUID}, ${actionName}) not found!`);
       return false;
     }
+
     if (!event) {
       this.#logSystem.warn(`Event (${eventGUID}, ${eventName}) not found. Creating a new one.`);
       event = this.#createEvent(eventGUID, eventName, args);
       this.#events.push(event);
     }
+
     // a temporary decision
     if (this.#subscriptions.find(sub => sub.event === event && sub.action === action)) {
       this.#logSystem.warn(
@@ -176,6 +190,7 @@ export class EventSystem extends SystemPlugin {
       );
       return true;
     }
+
     this.#subscriptions.push({ event, action });
     this.#logSystem.debug(`Subscribed event '${event.id}' to action '${action.id}'`);
     return true;
@@ -183,7 +198,7 @@ export class EventSystem extends SystemPlugin {
 
   unsubscribe(eventGUID, eventName, actionGUID, actionName, ...args) {
     this.#logSystem.debug(
-      `Tryin to unsubscribe: ${eventGUID}, ${eventName}, to ${actionGUID}, ${actionName}`
+      `Trying to unsubscribe: ${eventGUID}, ${eventName}, to ${actionGUID}, ${actionName}`
     );
 
     const event = this.#findEvent(eventGUID, eventName, args);
