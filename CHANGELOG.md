@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - integrated log system
 - token to subscription
 - custom actions support
+- added proper event args comparison
 
 ### Changed
 

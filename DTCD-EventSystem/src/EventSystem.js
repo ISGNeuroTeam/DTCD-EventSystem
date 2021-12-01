@@ -1,6 +1,7 @@
 import { CustomEvent } from './utils/CustomEvent';
 import { CustomAction } from './utils/CustomAction';
 import { SystemPlugin, LogSystemAdapter } from './../../DTCD-SDK/index';
+import deepEqual from './utils/deepEqual';
 
 export class EventSystem extends SystemPlugin {
   static getRegistrationMeta() {
@@ -52,11 +53,25 @@ export class EventSystem extends SystemPlugin {
   #findEvent(guid, eventName, args) {
     this.#logSystem.debug(`Finding event with guid '${guid}' and name '${eventName}' `);
     const event = this.#events.find(evt => {
-      const a1 = JSON.stringify(args);
-      const a2 = JSON.stringify(evt.args);
-      return evt.guid == guid && evt.name === eventName && a1 === a2;
+      const equal = this.#compareEventArgs(args, evt.args);
+      return evt.guid == guid && evt.name === eventName && equal;
     });
     return event;
+  }
+
+  #compareEventArgs(firstEventArgs, secondEventArgs) {
+    if (firstEventArgs.length !== secondEventArgs.length) return false;
+    for (let i = 0; i < firstEventArgs.length; i++) {
+      if (typeof firstEventArgs[i] === 'object') {
+        const result = deepEqual(firstEventArgs[i], secondEventArgs[i]);
+        if (!result) return false;
+      } else if (typeof firstEventArgs[i] === 'function') {
+        return false;
+      } else if (firstEventArgs[i] !== secondEventArgs[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   resetSystem() {
@@ -142,13 +157,11 @@ export class EventSystem extends SystemPlugin {
     return true;
   }
 
-  #publish(eventName, args) {
+  #publish(eventID, args) {
     const subscriptions = this.#subscriptions.filter(subscripton => {
-      if (subscripton.event.args.length === 0) return subscripton.event.id === eventName;
-      if (subscripton.event.id === eventName) {
-        const a1 = JSON.stringify(args);
-        const a2 = JSON.stringify(subscripton.event.args);
-        return a1 === a2;
+      if (subscripton.event.args.length === 0) return subscripton.event.id === eventID;
+      if (subscripton.event.id === eventID) {
+        return this.#compareEventArgs(args, subscripton.event.args);
       }
       return false;
     });
