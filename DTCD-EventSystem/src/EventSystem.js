@@ -150,6 +150,19 @@ export class EventSystem extends SystemPlugin {
     return this.registerAction(undefined, actionName, callback);
   }
 
+  removeCustomAction(customActionName) {
+    const index = this.#actions.findIndex(
+      action => !action.guid && action.name === customActionName
+    );
+    if (index !== -1) {
+      this.#actions.splice(index, 1);
+      this.#logSystem.info(`Removed custom action '${customActionName}'`);
+    } else {
+      this.#logSystem.warn(`Custom action '${customActionName}' not found`);
+    }
+    return true;
+  }
+
   publishEvent(guid, eventName, ...args) {
     this.#logSystem.debug(`Trying to publish event with guid '${guid}' and name '${eventName}' `);
     const customEventID = CustomEvent.generateID(guid, eventName);
