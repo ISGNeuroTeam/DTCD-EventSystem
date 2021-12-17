@@ -1,28 +1,18 @@
 # DTCD-EventSystem
 
-System core plugin of the [DTCD](https://github.com/ISGNeuroTeam/DTCD) application for actions and events.
+System core plugin of the [DTCD](https://github.com/ISGNeuroTeam/DTCD) application for actions and events which implements PubSub template.
 
 ## Getting Started
 
-In order to use this plugin you need to download it, build and move build-file to __plugins__ folder on DTCD server.
+In order to use this plugin you need to download it, build and move it to plugins directory of complex_rest dtcd_mockserver_plugin.
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/en/) LTS version 14.x.x
-- [make](https://en.wikipedia.org/wiki/Make_(software)) utility
-- [DTCD](https://github.com/ISGNeuroTeam/DTCD) application
+- [DTCD](https://github.com/ISGNeuroTeam/DTCD) v0.3.0
 
 ### Building
 
-Install plugin dependencies:
-- `make sdk`
-- `make dependencies`
-
-Create build directory:
-- `cd ./DTCD-EventSystem`
-- `npm run build`
-
-Also you can use Makefile for complete all steps:
 ```
 make build
 ```
@@ -47,26 +37,14 @@ make clear
 
 ## Deployment
 
-Create build package, then move archive to __plugins__ folder on DTCD server and unpack it with the following commands:
-```
-tar -zxf DTCD-EventSystem-*.tar.gz ./DTCD-EventSystem
-mv ./DTCD-EventSystem/EventSystem.js ./
-rm -rf DTCD-EventSystem
-```
-
-After unpacking the build package, remove or delete it from __plugins__ folder, for example:
-```
-rm DTCD-EventSystem-*.tar.gz
-```
+Use `make pack` to get a deployable tarball. Move it to plugins directory of complex_rest dtcd_mockserver_plugin.
 
 ## Built With
 
-- [Rollup.js](https://rollupjs.org/guide/en/) - JavaScript module bundler
-- [PubSub](https://github.com/mroderick/PubSubJS) - publish/subscribe library
-- [DTCD-SDK](https://github.com/ISGNeuroTeam/DTCD-SDK) - SDK for plugin development
+- [DTCD-SDK](https://github.com/ISGNeuroTeam/DTCD-SDK) v0.1.2
+- [Rollup.js](https://rollupjs.org/guide/en/) v2.35.1
 
 ## Contributing
-
 
 ## Versioning
 
@@ -77,7 +55,8 @@ Also you can see the [CHANGELOG](CHANGELOG.md) file.
 ## Authors
 
 - Konstantin Rozov (konstantin@isgneuro.com)
-- Roman Kuramshin (rkuramshin@isgneuro.com)
+- Kuramshin Roman (rkuramshin@isgneuro.com)
+- Belikov Sergei (sbelikov@isgneuro.com)
 
 ## License
 
