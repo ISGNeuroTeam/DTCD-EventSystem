@@ -3,6 +3,8 @@ import { CustomAction } from './utils/CustomAction';
 import { SystemPlugin, LogSystemAdapter } from './../../DTCD-SDK/index';
 import deepEqual from './utils/deepEqual';
 
+import { version } from './../package.json';
+
 export class EventSystem extends SystemPlugin {
   static getRegistrationMeta() {
     return {
@@ -10,7 +12,7 @@ export class EventSystem extends SystemPlugin {
       title: 'Система cобытий',
       name: 'EventSystem',
       priority: 6,
-      version: '0.2.0',
+      version,
     };
   }
 
@@ -23,7 +25,7 @@ export class EventSystem extends SystemPlugin {
   constructor(guid) {
     super();
     this.#guid = guid;
-    this.#logSystem = new LogSystemAdapter(this.#guid, 'EventSystem');
+    this.#logSystem = new LogSystemAdapter('0.4.0', this.#guid, 'EventSystem');
     this.#actions = [];
     this.#events = [];
     this.#subscriptions = [];
