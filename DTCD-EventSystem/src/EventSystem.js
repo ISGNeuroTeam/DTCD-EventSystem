@@ -94,8 +94,10 @@ export class EventSystem extends SystemPlugin {
 
     actions.forEach(action => {
       let { guid, name, callback } = action;
-      callback = new Function('return ' + callback)();
-      this.registerAction(guid, name, callback);
+      try {
+        callback = new Function('return ' + callback)();
+        this.registerAction(guid, name, callback);
+      } catch (err) {}
     });
 
     for (let subscription of subscriptions) {
