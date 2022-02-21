@@ -25,7 +25,7 @@ export class EventSystem extends SystemPlugin {
   constructor(guid) {
     super();
     this.#guid = guid;
-    this.#logSystem = new LogSystemAdapter('0.4.0', this.#guid, 'EventSystem');
+    this.#logSystem = new LogSystemAdapter('0.5.0', this.#guid, 'EventSystem');
     this.#actions = [];
     this.#events = [];
     this.#subscriptions = [];
