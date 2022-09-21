@@ -193,7 +193,12 @@ export class EventSystem extends SystemPlugin {
     );
 
     let event = this.#findEvent(eventGUID, eventName, args);
-    let action = this.#findAction(actionGUID, actionName);
+    let action;
+    if (actionGUID === '-') {
+      action = this.#findAction(undefined, actionName);
+    } else {
+      action = this.#findAction(actionGUID, actionName);
+    }
 
     if (!event && !action) {
       this.#logSystem.error(
