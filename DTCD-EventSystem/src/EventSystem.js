@@ -183,7 +183,22 @@ export class EventSystem extends SystemPlugin {
       return false;
     });
     if (subscriptions.length > 0) {
-      subscriptions.forEach(subscripton => subscripton.action.callback(...args));
+      subscriptions.forEach((subscripton) => {
+        try {
+          return subscripton.action.callback(...args);
+        } catch (error) {
+          console.error(
+            `Событие: ${subscripton.event.id}\n`
+            + `Действие: ${subscripton.action.id}\n`,
+            error
+          );
+          this.#logSystem.error(
+            `Событие: ${subscripton.event.id}\n`
+            + `Действие: ${subscripton.action.id}\n`,
+            error
+          );
+        }
+      });
     }
   }
 
