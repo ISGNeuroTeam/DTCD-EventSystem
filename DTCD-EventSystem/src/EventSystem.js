@@ -1,9 +1,13 @@
+import {
+  SystemPlugin,
+  LogSystemAdapter,
+} from './../../DTCD-SDK/index';
+import { version } from './../package.json';
+
 import { CustomEvent } from './utils/CustomEvent';
 import { CustomAction } from './utils/CustomAction';
-import { SystemPlugin, LogSystemAdapter } from './../../DTCD-SDK/index';
 import deepEqual from './utils/deepEqual';
 
-import { version } from './../package.json';
 
 export class EventSystem extends SystemPlugin {
   static getRegistrationMeta() {
@@ -188,13 +192,15 @@ export class EventSystem extends SystemPlugin {
           return subscripton.action.callback(...args);
         } catch (error) {
           console.error(
-            `Событие: ${subscripton.event.id}\n`
-            + `Действие: ${subscripton.action.id}\n`,
+            `Ошибка в подписке. ` +
+            `Событие: ${subscripton.event.id}. ` +
+            `Действие: ${subscripton.action.id}.\n`,
             error
           );
           this.#logSystem.error(
-            `Событие: ${subscripton.event.id}\n`
-            + `Действие: ${subscripton.action.id}\n`,
+            `Ошибка в подписке. ` +
+            `Событие: ${subscripton.event.id}. ` +
+            `Действие: ${subscripton.action.id}.\n`,
             error
           );
         }
