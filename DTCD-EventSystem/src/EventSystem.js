@@ -208,12 +208,37 @@ export class EventSystem extends SystemPlugin {
     }
   }
 
-  subscribe(eventGUID, eventName, actionGUID, actionName, ...args) {
+  subscribe(param1, ...args) {
+    let subscriptionName,
+        eventGUID,
+        eventName,
+        actionGUID,
+        actionName,
+        eventArgs;
+
+    if (param1 instanceof Object) {
+      // new API
+      subscriptionName = param1.subscriptionName;
+      eventGUID = param1.eventGUID;
+      eventName = param1.eventName;
+      actionGUID = param1.actionGUID;
+      actionName = param1.actionName;
+      eventArgs = args;
+    } else {
+      // old API
+      eventGUID = param1;
+      eventName = args[0];
+      actionGUID = args[1];
+      actionName = args[2];
+      eventArgs = args.slice(3);
+    }
+
     this.#logSystem.debug(
       `Trying to subscribe: ${eventGUID}, ${eventName}, to ${actionGUID}, ${actionName}`
     );
 
-    let event = this.#findEvent(eventGUID, eventName, args);
+    let event = this.#findEvent(eventGUID, eventName, eventArgs);
+
     let action;
     if (actionGUID === '-') {
       action = this.#findAction(undefined, actionName);
@@ -235,7 +260,7 @@ export class EventSystem extends SystemPlugin {
 
     if (!event) {
       this.#logSystem.warn(`Event (${eventGUID}, ${eventName}) not found. Creating a new one.`);
-      event = this.#createEvent(eventGUID, eventName, args);
+      event = this.#createEvent(eventGUID, eventName, eventArgs);
       this.#events.push(event);
     }
 
@@ -247,9 +272,17 @@ export class EventSystem extends SystemPlugin {
       return true;
     }
 
-    this.#subscriptions.push({ event, action });
-    this.#logSystem.debug(`Subscribed event '${event.id}' to action '${action.id}'`);
-    return true;
+    const subscriptionID = EventSystem.generateSubscriptionID();
+
+    this.#subscriptions.push({
+      event,
+      action,
+      subscriptionID,
+      subscriptionName: subscriptionName || `subscription №${subscriptionID}`,
+    });
+
+    this.#logSystem.debug(`Created subscription with ID '${subscriptionID}' (eventID: '${event.id}', actionID '${action.id}').`);
+    return subscriptionID;
   }
 
   unsubscribe(eventGUID, eventName, actionGUID, actionName, ...args) {
@@ -257,12 +290,20 @@ export class EventSystem extends SystemPlugin {
       `Trying to unsubscribe: ${eventGUID}, ${eventName}, to ${actionGUID}, ${actionName}`
     );
 
-    const event = this.#findEvent(eventGUID, eventName, args);
-    const action = this.#findAction(actionGUID, actionName);
-
-    const index = this.#subscriptions.findIndex(
-      sub => sub.event === event && sub.action === action
+    // ищем индекс подписки по subscriptionID
+    let index = this.#subscriptions.findIndex(
+      sub => sub.subscriptionID === eventGUID
     );
+
+    // ... иначе ищем индекс по событию и действию
+    if (index === -1) {
+      const event = this.#findEvent(eventGUID, eventName, args);
+      const action = this.#findAction(actionGUID, actionName);
+  
+      index = this.#subscriptions.findIndex(
+        sub => sub.event === event && sub.action === action
+      );
+    }
 
     if (index !== -1) {
       this.#subscriptions.splice(index, 1);
@@ -327,5 +368,9 @@ export class EventSystem extends SystemPlugin {
 
   get subscriptions() {
     return this.#subscriptions;
+  }
+
+  static generateSubscriptionID() {
+    return Math.round(Math.random() * 1000000);
   }
 }
