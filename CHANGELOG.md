@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Added
+
+- ID and name of subscription
+
+### Changed
+
+- improved API of methods `subscribe` and `unsubscribe`
+
 ### Fixed
 
 - bug of execution a several actions
