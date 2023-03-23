@@ -106,11 +106,25 @@ export class EventSystem extends SystemPlugin {
 
     for (let subscription of subscriptions) {
       const {
-        event: { guid: evtGUID, name: evtName },
-        action: { guid: actGUID, name: actName },
+        event: { guid: eventGUID, name: eventName },
+        action: { guid: actionGUID, name: actionName },
+        subscriptionID,
+        subscriptionName,
       } = subscription;
+
       if (!subscription.event.args) subscription.event.args = [];
-      this.subscribe(evtGUID, evtName, actGUID, actName, ...subscription.event.args);
+      
+      this.subscribe(
+        {
+          eventGUID,
+          eventName,
+          actionGUID,
+          actionName,
+          subscriptionID,
+          subscriptionName,
+        },
+        ...subscription.event.args
+      );
     }
     return true;
   }
@@ -209,21 +223,23 @@ export class EventSystem extends SystemPlugin {
   }
 
   subscribe(param1, ...args) {
-    let subscriptionName,
-        eventGUID,
+    let eventGUID,
         eventName,
         actionGUID,
         actionName,
-        eventArgs;
+        eventArgs,
+        subscriptionID,
+        subscriptionName;
 
     if (param1 instanceof Object) {
       // new API
-      subscriptionName = param1.subscriptionName;
       eventGUID = param1.eventGUID;
       eventName = param1.eventName;
       actionGUID = param1.actionGUID;
       actionName = param1.actionName;
       eventArgs = args;
+      subscriptionID = param1.subscriptionID;
+      subscriptionName = param1.subscriptionName;
     } else {
       // old API
       eventGUID = param1;
@@ -272,13 +288,15 @@ export class EventSystem extends SystemPlugin {
       return true;
     }
 
-    const subscriptionID = EventSystem.generateSubscriptionID();
+    if (!subscriptionID) {
+      subscriptionID = EventSystem.generateSubscriptionID();
+    }
 
     this.#subscriptions.push({
       event,
       action,
       subscriptionID,
-      subscriptionName: subscriptionName || `subscription №${subscriptionID}`,
+      subscriptionName: subscriptionName || `Подписка №${subscriptionID}`,
     });
 
     this.#logSystem.debug(`Created subscription with ID '${subscriptionID}' (eventID: '${event.id}', actionID '${action.id}').`);
