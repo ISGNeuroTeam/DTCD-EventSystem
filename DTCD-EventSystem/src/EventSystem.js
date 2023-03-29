@@ -229,7 +229,8 @@ export class EventSystem extends SystemPlugin {
         actionName,
         eventArgs,
         subscriptionID,
-        subscriptionName;
+        subscriptionName,
+        subscriptionType;
 
     if (param1 instanceof Object) {
       // new API
@@ -237,9 +238,10 @@ export class EventSystem extends SystemPlugin {
       eventName = param1.eventName;
       actionGUID = param1.actionGUID;
       actionName = param1.actionName;
-      eventArgs = args;
+      eventArgs = args[0] ? args : []; // костыль
       subscriptionID = param1.subscriptionID;
       subscriptionName = param1.subscriptionName;
+      subscriptionType = param1.subscriptionType;
     } else {
       // old API
       eventGUID = param1;
@@ -296,7 +298,8 @@ export class EventSystem extends SystemPlugin {
       event,
       action,
       subscriptionID,
-      subscriptionName: subscriptionName || `Подписка №${subscriptionID}`,
+      subscriptionName,
+      subscriptionType,
     });
 
     this.#logSystem.debug(`Created subscription with ID '${subscriptionID}' (eventID: '${event.id}', actionID '${action.id}').`);
