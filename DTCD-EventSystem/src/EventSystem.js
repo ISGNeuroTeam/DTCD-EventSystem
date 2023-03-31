@@ -222,7 +222,7 @@ export class EventSystem extends SystemPlugin {
     }
   }
 
-  subscribe(param1, ...args) {
+  subscribe(subscriptionData, ...args) {
     let eventGUID,
         eventName,
         actionGUID,
@@ -232,19 +232,19 @@ export class EventSystem extends SystemPlugin {
         subscriptionName,
         subscriptionType;
 
-    if (param1 instanceof Object) {
+    if (subscriptionData instanceof Object) {
       // new API
-      eventGUID = param1.eventGUID;
-      eventName = param1.eventName;
-      actionGUID = param1.actionGUID;
-      actionName = param1.actionName;
+      eventGUID = subscriptionData.eventGUID;
+      eventName = subscriptionData.eventName;
+      actionGUID = subscriptionData.actionGUID;
+      actionName = subscriptionData.actionName;
       eventArgs = args[0] ? args : []; // костыль
-      subscriptionID = param1.subscriptionID;
-      subscriptionName = param1.subscriptionName;
-      subscriptionType = param1.subscriptionType;
+      subscriptionID = subscriptionData.subscriptionID;
+      subscriptionName = subscriptionData.subscriptionName;
+      subscriptionType = subscriptionData.subscriptionType;
     } else {
       // old API
-      eventGUID = param1;
+      eventGUID = subscriptionData;
       eventName = args[0];
       actionGUID = args[1];
       actionName = args[2];
