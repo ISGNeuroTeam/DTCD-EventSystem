@@ -113,7 +113,7 @@ export class EventSystem extends SystemPlugin {
       } = subscription;
 
       if (!subscription.event.args) subscription.event.args = [];
-      
+
       this.subscribe(
         {
           eventGUID,
@@ -258,7 +258,8 @@ export class EventSystem extends SystemPlugin {
     let event = this.#findEvent(eventGUID, eventName, eventArgs);
 
     let action;
-    if (actionGUID === '-') {
+
+    if (actionGUID === '-' || actionGUID === 'Пользовательское событие') {
       action = this.#findAction(undefined, actionName);
     } else {
       action = this.#findAction(actionGUID, actionName);
@@ -320,7 +321,7 @@ export class EventSystem extends SystemPlugin {
     if (index === -1) {
       const event = this.#findEvent(eventGUID, eventName, args);
       const action = this.#findAction(actionGUID, actionName);
-  
+
       index = this.#subscriptions.findIndex(
         sub => sub.event === event && sub.action === action
       );

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - bug of execution a several actions
+- bug with subscribing a custom action to an event due to `actionGUID`
 
 ## [0.5.0]
 
