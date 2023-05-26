@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0]
+
+### Added
+
+- ID, name and type of subscription
+
+### Changed
+
+- improved API of methods `subscribe` and `unsubscribe`
+
+### Fixed
+
+- bug of execution a several actions
+- bug with subscribing a custom action to an event due to `actionGUID`
+
 ## [0.5.0]
 
 ### Fixed

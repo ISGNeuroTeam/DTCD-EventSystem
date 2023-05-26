@@ -1,9 +1,13 @@
+import {
+  SystemPlugin,
+  LogSystemAdapter,
+} from './../../DTCD-SDK/index';
+import { version } from './../package.json';
+
 import { CustomEvent } from './utils/CustomEvent';
 import { CustomAction } from './utils/CustomAction';
-import { SystemPlugin, LogSystemAdapter } from './../../DTCD-SDK/index';
 import deepEqual from './utils/deepEqual';
 
-import { version } from './../package.json';
 
 export class EventSystem extends SystemPlugin {
   static getRegistrationMeta() {
@@ -102,11 +106,25 @@ export class EventSystem extends SystemPlugin {
 
     for (let subscription of subscriptions) {
       const {
-        event: { guid: evtGUID, name: evtName },
-        action: { guid: actGUID, name: actName },
+        event: { guid: eventGUID, name: eventName },
+        action: { guid: actionGUID, name: actionName },
+        subscriptionID,
+        subscriptionName,
       } = subscription;
+
       if (!subscription.event.args) subscription.event.args = [];
-      this.subscribe(evtGUID, evtName, actGUID, actName, ...subscription.event.args);
+
+      this.subscribe(
+        {
+          eventGUID,
+          eventName,
+          actionGUID,
+          actionName,
+          subscriptionID,
+          subscriptionName,
+        },
+        ...subscription.event.args
+      );
     }
     return true;
   }
@@ -183,18 +201,65 @@ export class EventSystem extends SystemPlugin {
       return false;
     });
     if (subscriptions.length > 0) {
-      subscriptions.forEach(subscripton => subscripton.action.callback(...args));
+      subscriptions.forEach((subscripton) => {
+        try {
+          return subscripton.action.callback(...args);
+        } catch (error) {
+          console.error(
+            `Ошибка в подписке. ` +
+            `Событие: ${subscripton.event.id}. ` +
+            `Действие: ${subscripton.action.id}.\n`,
+            error
+          );
+          this.#logSystem.error(
+            `Ошибка в подписке. ` +
+            `Событие: ${subscripton.event.id}. ` +
+            `Действие: ${subscripton.action.id}.\n`,
+            error
+          );
+        }
+      });
     }
   }
 
-  subscribe(eventGUID, eventName, actionGUID, actionName, ...args) {
+  subscribe(subscriptionData, ...args) {
+    let eventGUID,
+        eventName,
+        actionGUID,
+        actionName,
+        eventArgs,
+        subscriptionID,
+        subscriptionName,
+        subscriptionType;
+
+    if (subscriptionData instanceof Object) {
+      // new API
+      eventGUID = subscriptionData.eventGUID;
+      eventName = subscriptionData.eventName;
+      actionGUID = subscriptionData.actionGUID;
+      actionName = subscriptionData.actionName;
+      eventArgs = args[0] ? args : []; // костыль
+      subscriptionID = subscriptionData.subscriptionID;
+      subscriptionName = subscriptionData.subscriptionName;
+      subscriptionType = subscriptionData.subscriptionType;
+    } else {
+      // old API
+      eventGUID = subscriptionData;
+      eventName = args[0];
+      actionGUID = args[1];
+      actionName = args[2];
+      eventArgs = args.slice(3);
+    }
+
     this.#logSystem.debug(
       `Trying to subscribe: ${eventGUID}, ${eventName}, to ${actionGUID}, ${actionName}`
     );
 
-    let event = this.#findEvent(eventGUID, eventName, args);
+    let event = this.#findEvent(eventGUID, eventName, eventArgs);
+
     let action;
-    if (actionGUID === '-') {
+
+    if (actionGUID === '-' || actionGUID === 'Пользовательское событие') {
       action = this.#findAction(undefined, actionName);
     } else {
       action = this.#findAction(actionGUID, actionName);
@@ -214,7 +279,7 @@ export class EventSystem extends SystemPlugin {
 
     if (!event) {
       this.#logSystem.warn(`Event (${eventGUID}, ${eventName}) not found. Creating a new one.`);
-      event = this.#createEvent(eventGUID, eventName, args);
+      event = this.#createEvent(eventGUID, eventName, eventArgs);
       this.#events.push(event);
     }
 
@@ -226,9 +291,20 @@ export class EventSystem extends SystemPlugin {
       return true;
     }
 
-    this.#subscriptions.push({ event, action });
-    this.#logSystem.debug(`Subscribed event '${event.id}' to action '${action.id}'`);
-    return true;
+    if (!subscriptionID) {
+      subscriptionID = EventSystem.generateSubscriptionID();
+    }
+
+    this.#subscriptions.push({
+      event,
+      action,
+      subscriptionID,
+      subscriptionName,
+      subscriptionType,
+    });
+
+    this.#logSystem.debug(`Created subscription with ID '${subscriptionID}' (eventID: '${event.id}', actionID '${action.id}').`);
+    return subscriptionID;
   }
 
   unsubscribe(eventGUID, eventName, actionGUID, actionName, ...args) {
@@ -236,12 +312,20 @@ export class EventSystem extends SystemPlugin {
       `Trying to unsubscribe: ${eventGUID}, ${eventName}, to ${actionGUID}, ${actionName}`
     );
 
-    const event = this.#findEvent(eventGUID, eventName, args);
-    const action = this.#findAction(actionGUID, actionName);
-
-    const index = this.#subscriptions.findIndex(
-      sub => sub.event === event && sub.action === action
+    // ищем индекс подписки по subscriptionID
+    let index = this.#subscriptions.findIndex(
+      sub => sub.subscriptionID === eventGUID
     );
+
+    // ... иначе ищем индекс по событию и действию
+    if (index === -1) {
+      const event = this.#findEvent(eventGUID, eventName, args);
+      const action = this.#findAction(actionGUID, actionName);
+
+      index = this.#subscriptions.findIndex(
+        sub => sub.event === event && sub.action === action
+      );
+    }
 
     if (index !== -1) {
       this.#subscriptions.splice(index, 1);
@@ -306,5 +390,9 @@ export class EventSystem extends SystemPlugin {
 
   get subscriptions() {
     return this.#subscriptions;
+  }
+
+  static generateSubscriptionID() {
+    return Math.round(Math.random() * 1000000);
   }
 }
