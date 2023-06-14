@@ -9,6 +9,8 @@ import { CustomAction } from './utils/CustomAction';
 import deepEqual from './utils/deepEqual';
 
 
+const CUSTOM_USER_ACTION = 'customUserActions'
+
 export class EventSystem extends SystemPlugin {
   static getRegistrationMeta() {
     return {
@@ -30,67 +32,58 @@ export class EventSystem extends SystemPlugin {
     super();
     this.#guid = guid;
     this.#logSystem = new LogSystemAdapter('0.5.0', this.#guid, 'EventSystem');
-    this.#actions = [];
-    this.#events = [];
+    this.#actions = new Map();
+    this.#events = new Map();
     this.#subscriptions = [];
   }
 
-  #createEvent(guid, eventName, args = null) {
+  #createEvent(pluginID, eventName, args = null) {
     this.#logSystem.debug(
-      `Creating event '${eventName}' to instance id '${guid}' with args:${args} `
+      `Creating event '${eventName}' to instance id '${pluginID}' with args:${args} `
     );
-    return new CustomEvent(guid, eventName, args);
+    return new CustomEvent(pluginID, eventName, args);
   }
 
-  #createAction(guid, actionName, cb) {
-    this.#logSystem.debug(`Creating action:'${actionName}', guid:'${guid}'`);
-    return new CustomAction(guid, actionName, cb);
+  #createAction(pluginID, actionName, cb) {
+    this.#logSystem.debug(`Creating action:'${actionName}', id:'${pluginID}'`);
+    return new CustomAction(pluginID, actionName, cb);
   }
 
-  // ---- FINDING ACTION/EVENT METHODS ----
-  // ---- actions ----
-  #findAction(guid, actionName) {
-    this.#logSystem.debug(`Finding action with guid '${guid}' and name '${actionName}'`);
-    const action = this.#actions.find(action => action.name == actionName && action.guid === guid);
-    return action;
+  findAction(pluginID, actionName) {
+    this.#logSystem.debug(`Finding action with id '${pluginID}' and name '${actionName}'`);
+    return this.#actions.get(pluginID)?.get(actionName);
   }
 
-  // ---- events ----
-  #findEvent(guid, eventName, args) {
-    this.#logSystem.debug(`Finding event with guid '${guid}' and name '${eventName}' `);
-    const event = this.#events.find(evt => {
-      const equal = this.#compareEventArgs(args, evt.args);
-      return evt.guid == guid && evt.name === eventName && equal;
+  findEvent(pluginID, eventName, payload) {
+    this.#logSystem.debug(`Finding event with id '${pluginID}' and name '${eventName}' `);
+
+    const eventList = this.#events.get(pluginID)?.get(eventName)
+
+    const event = eventList?.find(evt => {
+      const equal = deepEqual(payload, evt.payload);
+      return equal;
     });
     return event;
   }
 
-  #compareEventArgs(firstEventArgs, secondEventArgs) {
-    if (firstEventArgs.length !== secondEventArgs.length) return false;
-    for (let i = 0; i < firstEventArgs.length; i++) {
-      if (typeof firstEventArgs[i] === 'object') {
-        const result = deepEqual(firstEventArgs[i], secondEventArgs[i]);
-        if (!result) return false;
-      } else if (typeof firstEventArgs[i] === 'function') {
-        return false;
-      } else if (firstEventArgs[i] !== secondEventArgs[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   resetSystem() {
-    const systemGUIDs = this.getGUIDList().filter(
-      guid => this.getInstance(guid).__proto__.constructor.getRegistrationMeta().type === 'core'
-    );
+    const systemGUIDs = new Set(this.getGUIDList().filter(
+      pluginID => this.getInstance(pluginID).__proto__.constructor.getRegistrationMeta().type === 'core'
+    ));
+
     this.#subscriptions = this.#subscriptions.filter(
       subscription =>
-        systemGUIDs.includes(subscription.event.guid) &&
-        systemGUIDs.includes(subscription.action.guid)
+        systemGUIDs.has(subscription.event.guid) &&
+        systemGUIDs.has(subscription.action.guid)
     );
-    this.#events = this.#events.filter(event => systemGUIDs.includes(event.guid));
-    this.#actions = this.#actions.filter(action => systemGUIDs.includes(action.guid));
+
+    [...this.#actions.keys()].forEach(pluginID => {
+      if(!systemGUIDs.has(pluginID)) this.#actions.delete(pluginID)
+    });
+
+    [...this.#events.keys()].forEach(pluginID => {
+      if(!systemGUIDs.has(pluginID)) this.#events.delete(pluginID)
+    });
   }
 
   setPluginConfig(conf = {}) {
@@ -108,11 +101,10 @@ export class EventSystem extends SystemPlugin {
       const {
         event: { guid: eventGUID, name: eventName },
         action: { guid: actionGUID, name: actionName },
-        subscriptionID,
         subscriptionName,
       } = subscription;
 
-      if (!subscription.event.args) subscription.event.args = [];
+      // if (!subscription.event.payload) subscription.event.payload = [];
 
       this.subscribe(
         {
@@ -120,10 +112,9 @@ export class EventSystem extends SystemPlugin {
           eventName,
           actionGUID,
           actionName,
-          subscriptionID,
           subscriptionName,
         },
-        ...subscription.event.args
+        subscription.event.payload
       );
     }
     return true;
@@ -148,62 +139,89 @@ export class EventSystem extends SystemPlugin {
       if (!methodNotActionList.includes(methodName))
         this.registerAction(guid, methodName, object[methodName].bind(object));
     }
-    if (typeof eventList !== 'undefined')
+    if (Array.isArray(eventList))
       eventList.forEach(eventName => this.registerEvent(guid, eventName));
     return true;
   }
 
-  registerEvent(guid, eventName, ...args) {
-    this.#logSystem.debug(`Trying to register event with guid '${guid}' and name '${eventName}'.`);
-    const customEvent = this.#createEvent(guid, eventName, args);
-    this.#events.push(customEvent);
+  registerEvent(pluginID, eventName, payload) {
+    if (Array.isArray(payload) && payload.length === 0) payload = undefined; // for backward compability
+    this.#logSystem.debug(`Registrating event with pluginID '${pluginID}' and name '${eventName}' with payload ${JSON.stringify(payload)}.`);
+
+    if (!this.#events.has(pluginID))
+      this.#events.set(pluginID, new Map())
+
+    const pluginEvents = this.#events.get(pluginID)
+    if (!pluginEvents.has(eventName))
+      pluginEvents.set(eventName, [])
+
+    const eventList = pluginEvents.get(eventName)
+
+    for(const event of eventList) {
+      if (deepEqual(payload, event.payload)) {
+        this.#logSystem.debug(`Event '${pluginID}' '${eventName}' already exists.`);
+        return event;
+      }
+    }
+
+    const customEvent = this.#createEvent(pluginID, eventName, payload);
+    eventList.push(customEvent)
+
     this.#logSystem.debug(`Registered event '${customEvent.id}'`);
-    return true;
+    return customEvent;
   }
 
-  registerAction(guid, actionName, callback) {
-    const action = this.#createAction(guid, actionName, callback);
-    this.#actions.push(action);
+  registerAction(pluginID, actionName, callback) {
+    if (!this.#actions.has(pluginID))
+      this.#actions.set(pluginID, new Map())
+
+    const pluginActions = this.#actions.get(pluginID)
+    if (pluginActions.has(actionName)) {
+      this.#logSystem.debug(`Action with name:'${actionName}' for plugin:'${pluginID}' already exists!`);
+      return pluginActions.get(actionName)
+    }
+
+    const action = this.#createAction(pluginID, actionName, callback);
+    pluginActions.set(actionName, action)
+
     this.#logSystem.debug(`Registered action '${action.id}'`);
-    return true;
+    return action;
   }
 
   registerCustomAction(actionName, callback) {
-    return this.registerAction(undefined, actionName, callback);
+    return this.registerAction(CUSTOM_USER_ACTION, actionName, callback);
   }
 
   removeCustomAction(customActionName) {
-    const index = this.#actions.findIndex(
-      action => !action.guid && action.name === customActionName
-    );
-    if (index !== -1) {
-      this.#actions.splice(index, 1);
+    const action = this.#actions.has(CUSTOM_USER_ACTION)?.has(customActionName)
+    if (action) {
+      this.#actions.get(CUSTOM_USER_ACTION).delete(customActionName)
       this.#logSystem.info(`Removed custom action '${customActionName}'`);
-    } else {
-      this.#logSystem.warn(`Custom action '${customActionName}' not found`);
+      return true;
     }
-    return true;
+    this.#logSystem.warn(`Custom action '${customActionName}' not found`);
+    return false;
   }
 
-  publishEvent(guid, eventName, ...args) {
+  publishEvent(guid, eventName, payload) {
     this.#logSystem.debug(`Trying to publish event with guid '${guid}' and name '${eventName}' `);
     const customEventID = CustomEvent.generateID(guid, eventName);
-    this.#publish(customEventID, args);
+    this.#publish(customEventID, payload);
     return true;
   }
 
-  #publish(eventID, args) {
+  #publish(eventID, payload) {
     const subscriptions = this.#subscriptions.filter(subscripton => {
-      if (subscripton.event.args.length === 0) return subscripton.event.id === eventID;
+      if (!subscripton.event.payload) return subscripton.event.id === eventID;
       if (subscripton.event.id === eventID) {
-        return this.#compareEventArgs(args, subscripton.event.args);
+        return deepEqual(payload, subscripton.event.payload);
       }
       return false;
     });
     if (subscriptions.length > 0) {
       subscriptions.forEach((subscripton) => {
         try {
-          return subscripton.action.callback(...args);
+          return subscripton.action.callback(payload);
         } catch (error) {
           console.error(
             `Ошибка в подписке. ` +
@@ -216,21 +234,14 @@ export class EventSystem extends SystemPlugin {
             `Событие: ${subscripton.event.id}. ` +
             `Действие: ${subscripton.action.id}.\n`,
             error
-          );
+          ); 
         }
       });
     }
   }
 
   subscribe(subscriptionData, ...args) {
-    let eventGUID,
-        eventName,
-        actionGUID,
-        actionName,
-        eventArgs,
-        subscriptionID,
-        subscriptionName,
-        subscriptionType;
+    let eventGUID, eventName, actionGUID, actionName, eventArgs, subscriptionName;
 
     if (subscriptionData instanceof Object) {
       // new API
@@ -239,9 +250,7 @@ export class EventSystem extends SystemPlugin {
       actionGUID = subscriptionData.actionGUID;
       actionName = subscriptionData.actionName;
       eventArgs = args[0] ? args : []; // костыль
-      subscriptionID = subscriptionData.subscriptionID;
       subscriptionName = subscriptionData.subscriptionName;
-      subscriptionType = subscriptionData.subscriptionType;
     } else {
       // old API
       eventGUID = subscriptionData;
@@ -255,15 +264,9 @@ export class EventSystem extends SystemPlugin {
       `Trying to subscribe: ${eventGUID}, ${eventName}, to ${actionGUID}, ${actionName}`
     );
 
-    let event = this.#findEvent(eventGUID, eventName, eventArgs);
+    let event = this.findEvent(eventGUID, eventName, eventArgs);
 
-    let action;
-
-    if (actionGUID === '-' || actionGUID === 'Пользовательское событие') {
-      action = this.#findAction(undefined, actionName);
-    } else {
-      action = this.#findAction(actionGUID, actionName);
-    }
+    let action = this.findAction(actionGUID, actionName);
 
     if (!event && !action) {
       this.#logSystem.error(
@@ -279,8 +282,7 @@ export class EventSystem extends SystemPlugin {
 
     if (!event) {
       this.#logSystem.warn(`Event (${eventGUID}, ${eventName}) not found. Creating a new one.`);
-      event = this.#createEvent(eventGUID, eventName, eventArgs);
-      this.#events.push(event);
+      event = this.registerEvent(eventGUID, eventName, eventArgs);
     }
 
     // a temporary decision
@@ -291,20 +293,16 @@ export class EventSystem extends SystemPlugin {
       return true;
     }
 
-    if (!subscriptionID) {
-      subscriptionID = EventSystem.generateSubscriptionID();
-    }
+    if (!subscriptionName) 
+      subscriptionName = `${event.toString()}_${action.toString()}`
 
     this.#subscriptions.push({
       event,
       action,
-      subscriptionID,
       subscriptionName,
-      subscriptionType,
     });
 
-    this.#logSystem.debug(`Created subscription with ID '${subscriptionID}' (eventID: '${event.id}', actionID '${action.id}').`);
-    return subscriptionID;
+    return true;
   }
 
   unsubscribe(eventGUID, eventName, actionGUID, actionName, ...args) {
@@ -319,8 +317,8 @@ export class EventSystem extends SystemPlugin {
 
     // ... иначе ищем индекс по событию и действию
     if (index === -1) {
-      const event = this.#findEvent(eventGUID, eventName, args);
-      const action = this.#findAction(actionGUID, actionName);
+      const event = this.findEvent(eventGUID, eventName, args);
+      const action = this.findAction(actionGUID, actionName);
 
       index = this.#subscriptions.findIndex(
         sub => sub.event === event && sub.action === action
@@ -333,52 +331,6 @@ export class EventSystem extends SystemPlugin {
     return true;
   }
 
-  // #findActionsByName(actionName) {
-  //   this.#logSystem.debug(`Finding actions with the given event name: '${actionName}'`);
-  //   const actions = this.#actions.filter(action => action.name == actionName);
-  //   return actions;
-  // }
-
-  // #findEventsByName(eventName) {
-  //   this.#logSystem.debug(`Finding events with the given event name: '${eventName}'`);
-  //   const events = this.#events.filter(evt => evt.name == eventName);
-  //   return events;
-  // }
-  // subscribeActionOnEventName(actionGUID, actionName, eventName) {
-  //   this.#logSystem.debug(
-  //     `Subscribe action with guid ${actionGUID} and name '${actionName}' on events with name '${eventName}'`
-  //   );
-  //   const events = this.#findEventsByName(eventName);
-  //   const action = this.#findAction(actionGUID, actionName);
-  //   events.forEach(evt => {
-  //     this.#subscribe(evt, action);
-  //   });
-  //   return true;
-  // }
-
-  // subscribeEventOnActionName(eventGUID, eventName, actionName) {
-  //   this.#logSystem.debug(
-  //     `Subscribe event with guid '${eventGUID}' and name '${eventName}' to actions with name '${actionName}'`
-  //   );
-  //   const event = this.#findEvent(eventGUID, eventName);
-  //   const actions = this.#findActionsByName(actionName);
-  //   actions.forEach(action => {
-  //     this.#subscribe(event, action);
-  //   });
-  // }
-
-  // subscribeByNames(eventName, actionName) {
-  //   this.#logSystem.debug(`Subscribing eventName '${eventName}' to actionName '${actionName}'`);
-  //   const events = this.#findEventsByName(eventName);
-  //   const actions = this.#findActionsByName(actionName);
-  //   for (let evt of events) {
-  //     for (let action of actions) {
-  //       this.#subscribe(evt, action);
-  //     }
-  //   }
-  //   return true;
-  // }
-
   // ---- getters ----
   get events() {
     return this.#events;
@@ -390,9 +342,5 @@ export class EventSystem extends SystemPlugin {
 
   get subscriptions() {
     return this.#subscriptions;
-  }
-
-  static generateSubscriptionID() {
-    return Math.round(Math.random() * 1000000);
   }
 }
