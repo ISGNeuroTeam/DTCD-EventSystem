@@ -185,6 +185,37 @@ export class EventSystem extends SystemPlugin {
     return true;
   }
 
+  editCustomAction(actionOrName, callback) {
+    const actionChecks = [actionOrName instanceof CustomAction, typeof actionOrName === 'string'];
+
+    if (!actionChecks.includes(true)) {
+      throw new Error('Param "actionOrName" must be a CustomAction or string');
+    }
+
+    if (typeof callback !== 'function') {
+      throw new Error('Param "callback" must be a function');
+    }
+
+    const action = actionOrName instanceof CustomAction
+      ? actionOrName
+      : this.#actions.find(a => !a.guid && a.name === actionOrName);
+
+    if (!action) {
+      this.#logSystem.debug(`Custom action "${actionOrName}" not exist`);
+      this.#logSystem.warn(`Custom action "${actionOrName}" not exist`);
+      throw new Error(`Failed to edit custom action: action "${actionOrName}" not exist`);
+    }
+
+    const prevCallback = action.callback.toString();
+    action.callback = callback;
+
+    this.#logSystem.debug(
+      `Edited custom action "${action.name}" callback from "${prevCallback}" to "${action.callback.toString()}"`
+    );
+
+    this.#logSystem.info(`Custom action "${action.name}" edited successfully`);
+  }
+
   publishEvent(guid, eventName, ...args) {
     this.#logSystem.debug(`Trying to publish event with guid '${guid}' and name '${eventName}' `);
     const customEventID = CustomEvent.generateID(guid, eventName);
