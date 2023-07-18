@@ -154,18 +154,24 @@ export class EventSystem extends SystemPlugin {
   }
 
   registerEvent(guid, eventName, ...args) {
-    this.#logSystem.debug(`Trying to register event with guid '${guid}' and name '${eventName}'.`);
     const customEvent = this.#createEvent(guid, eventName, args);
+
     this.#events.push(customEvent);
-    this.#logSystem.debug(`Registered event '${customEvent.id}'`);
-    return true;
+    console.log(`Registered event "${eventName}"`);
+    console.log(`Registered event "${eventName}" with id ${customEvent.id}`);
+
+    return customEvent;
   }
 
   registerAction(guid, actionName, callback) {
     const action = this.#createAction(guid, actionName, callback);
+    const type = guid ? 'action' : 'custom action';
+
     this.#actions.push(action);
-    this.#logSystem.debug(`Registered action '${action.id}'`);
-    return true;
+    this.#logSystem.info(`Registered ${type} "${actionName}"`);
+    this.#logSystem.debug(`Registered ${type} "${actionName}" with id "${action.id}"`);
+
+    return action;
   }
 
   registerCustomAction(actionName, callback) {
