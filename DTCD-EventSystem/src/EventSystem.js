@@ -157,8 +157,8 @@ export class EventSystem extends SystemPlugin {
     const customEvent = this.#createEvent(guid, eventName, args);
 
     this.#events.push(customEvent);
-    console.log(`Registered event "${eventName}"`);
-    console.log(`Registered event "${eventName}" with id ${customEvent.id}`);
+    this.#logSystem.info(`Registered event "${eventName}"`);
+    this.#logSystem.debug(`Registered event "${eventName}" with id ${customEvent.id}`);
 
     return customEvent;
   }
